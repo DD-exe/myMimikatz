@@ -1,0 +1,10 @@
+.git/
+.vs/
+.idea/
+x64/
+Cirno~2.0/
+cirnoSetUp/
+*.json
+*.xlsx
+*.kra
+*.lnk

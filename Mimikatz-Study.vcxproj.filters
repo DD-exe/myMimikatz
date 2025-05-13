@@ -15,22 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="myMimikatz\mimikatz.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="mimikatz.cpp">
+    <ClCompile Include="myMimikatz\sekurlsa.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="sekurlsa.cpp">
+    <ClCompile Include="myMimikatz\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mimikatz.h">
+    <ClInclude Include="myMimikatz\sekurlsa.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="sekurlsa.h">
+    <ClInclude Include="myMimikatz\mimikatz.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

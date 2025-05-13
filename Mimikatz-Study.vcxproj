@@ -22,8 +22,9 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{860506a0-3d5a-419a-9728-0c880ed56807}</ProjectGuid>
-    <RootNamespace>MimikatzStudy</RootNamespace>
+    <RootNamespace>myMimikatz</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>myMimikatz</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -127,13 +128,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="mimikatz.cpp" />
-    <ClCompile Include="sekurlsa.cpp" />
+    <ClCompile Include="myMimikatz\main.cpp" />
+    <ClCompile Include="myMimikatz\mimikatz.cpp" />
+    <ClCompile Include="myMimikatz\sekurlsa.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mimikatz.h" />
-    <ClInclude Include="sekurlsa.h" />
+    <ClInclude Include="myMimikatz\mimikatz.h" />
+    <ClInclude Include="myMimikatz\sekurlsa.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

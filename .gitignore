@@ -8,3 +8,5 @@ cirnoSetUp/
 *.xlsx
 *.kra
 *.lnk
+*.dll
+*.i64

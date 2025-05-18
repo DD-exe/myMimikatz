@@ -4,6 +4,7 @@
 x64/
 Cirno~2.0/
 cirnoSetUp/
+WLibrary/
 *.json
 *.xlsx
 *.kra

@@ -1,10 +1,8 @@
 .git/
 .vs/
-.idea/
 x64/
-Cirno~2.0/
-cirnoSetUp/
 WLibrary/
+setReg/
 *.json
 *.xlsx
 *.kra

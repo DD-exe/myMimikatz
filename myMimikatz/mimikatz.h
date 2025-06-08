@@ -1,6 +1,7 @@
 #pragma once
 #include "sekurlsa.h"
-
+#define NTLMHASH_OFFSET 0x4a
+#define NTLMHASH_SIZE 16
 
 VOID LocateUnprotectLsassMemoryKeys();
 VOID GetCredentialsFromMSV();

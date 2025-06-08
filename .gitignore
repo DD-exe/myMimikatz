@@ -3,6 +3,7 @@
 x64/
 WLibrary/
 setReg/
+bin/
 *.json
 *.xlsx
 *.kra
